@@ -10,6 +10,7 @@ int main()
 	std::ifstream f(std::string(DATA_DIR) + "/train.csv");
 	std::cout << (f.is_open() ? "found train.csv\n" : "train.csv not found\n");
 
+	std::cout << "push check" << std::endl;
 
 	return 0;
 }
