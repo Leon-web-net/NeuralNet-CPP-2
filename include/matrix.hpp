@@ -29,6 +29,10 @@ public:
 
 	// TODO: add, subtract, hadamard, scale, add_col_vector, apply, sum, argmax_cols
 	Matrix add(const Matrix& other) const;
+	Matrix subtract(const Matrix& other)const;
+	Matrix hadamard(const Matrix& other)const;
+	Matrix scale(float scalar)const;
+	Matrix add_col_vector(const Matrix& col_vector)const;
 
 private:
 	std::size_t rows_;

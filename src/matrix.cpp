@@ -4,7 +4,7 @@
 
 
 Matrix Matrix::matmul(const Matrix& other)const {
-	if (cols_ !== other.rows_) {
+	if (cols_ != other.rows_) {
 		throw std::invalid_argument(
 			"matmul: (" + std::to_string(rows_) + "X" + std::to_string(cols_) +
 			") * (" + std::to_string(other.rows_) + "X" + std::to_string(other.cols_) +
@@ -53,14 +53,14 @@ Matrix::Matrix(std::size_t rows, std::size_t cols, std::vector<float> values)
 		throw std::invalid_argument(
 			"Matrix constructor: values size (" + std::to_string(data_.size()) +
 			") does not match rows * cols (" + std::to_string(rows * cols) + ")"
-		)
+		);
 	}
 }
 
 float& Matrix::at(std::size_t r, std::size_t c) {
 	if (r >= rows_ || c >= cols_) {
 		throw std::out_of_range(
-			"at(" + std:to_string(r) + "," + std::to_string(c) +
+			"at(" + std::to_string(r) + "," + std::to_string(c) +
 			") out of range for " + std::to_string(rows_) + "x" +
 			std::to_string(cols_));
 	}
@@ -88,11 +88,72 @@ Matrix Matrix::add(const Matrix& other)const {
 
 	Matrix result(rows_, cols_);
 	
-	for(i=0; i<rows_;++i){
-		for (j = 0;j < cols;++j) {
+	for(std::size_t i=0; i<rows_;++i){
+		for (std::size_t j = 0;j < cols_;++j) {
 			result(i, j) = (*this)(i, j) + other(i, j);
+		}
+	}
+	return result;
+}
+
+Matrix Matrix::subtract(const Matrix& other) const {
+	if (rows_ != other.rows_ || cols_ != other.cols_) {
+		throw std::invalid_argument(
+			"subtract: (" + std::to_string(rows_) + "x" + std::to_string(cols_) +
+			") - (" + std::to_string(other.rows_) + "x" + std::to_string(other.cols_) +
+			") - dimensions don't match");
+	}
+	Matrix result(rows_, cols_);
+
+	for (std::size_t i = 0; i < rows_; ++i) {
+		for (std::size_t j = 0;j < cols_;++j) {
+			result(i, j) = (*this)(i, j) - other(i, j);
 		}
 	}
 
 	return result;
 }
+
+Matrix Matrix::scale(float scalar)const {
+	Matrix result(rows_, cols_);
+	for (std::size_t i = 0; i < rows_; ++i) {
+		for (std::size_t j = 0;j < cols_;++j) {
+			result(i, j) = (*this)(i, j) * scalar;
+		}
+	}
+	return result;
+}
+
+Matrix Matrix::hadamard(const Matrix& other)const {
+	if (rows_ != other.rows_ || cols_ != other.cols_) {
+		throw std::invalid_argument(
+			"hadamard: (" + std::to_string(rows_) + "x" + std::to_string(cols_) +
+			") hadamard (" + std::to_string(other.rows_) + "x" + std::to_string(other.cols_) +
+			") - dimensions don't match");
+	}
+	Matrix result(rows_, cols_);
+	for (std::size_t i = 0; i < rows_; ++i) {
+		for (std::size_t j = 0;j < cols_;++j) {
+			result(i, j) = (*this)(i, j) * other(i, j);
+		}
+	}
+	return result;
+}
+
+Matrix Matrix::add_col_vector(const Matrix& col_vector)const {
+	if (col_vector.cols_ != 1 || col_vector.rows_ != rows_) {
+		throw std::invalid_argument(
+			"add_col_vector: matrix (" + std::to_string(rows_) + "x" + std::to_string(cols_) +
+			") needs a column vector (" + std::to_string(rows_) + "x1), got (" +
+			std::to_string(col_vector.rows_) + "x" + std::to_string(col_vector.cols_) + ")");
+	}
+
+	Matrix result(rows_, cols_);
+	for (std::size_t i = 0; i < rows_;++i) {
+		for (std::size_t j = 0; j < cols_;++j) {
+			result(i, j) = (*this)(i, j) + col_vector(i, 0);
+		}
+	}
+	return result;
+}
+
