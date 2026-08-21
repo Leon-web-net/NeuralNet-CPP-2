@@ -1,15 +1,35 @@
 #include "matrix.hpp"
 #include <iostream>
+#include <iomanip>
+#include <random>
 
-void print(const Matrix& m, const std::string& name) {
+
+void print(const Matrix& m, const std::string& name, int width = 10, int precision = 4) {
 	std::cout << name << " (" << m.rows() << "x" << m.cols() << "):\n";
+
+	// Set floating-point format to fixed decimal places
+	std::cout << std::fixed << std::setprecision(precision);
+
 	for (std::size_t i = 0; i < m.rows(); ++i) {
+		std::cout << "  "; // Small left indent
 		for (std::size_t j = 0; j < m.cols(); ++j) {
-			std::cout << m(i, j) << "\t";
+			// std::setw must be called before every item; it resets after one output
+			std::cout << std::setw(width) << m(i, j) << " ";
 		}
-		std::cout <<'\n';
+		std::cout << '\n';
 	}
 	std::cout << '\n';
+}
+
+void rand_matrix(Matrix& m, float lo = -1.0f, float hi = 1.0f) {
+	static std::mt19937 gen(42);
+	std::uniform_real_distribution<float> dist(lo, hi);
+
+	for(std::size_t i =0; i<m.rows();++i){
+		for (std::size_t j = 0; j < m.cols();++j) {
+			m(i, j) = dist(gen);
+		}
+	}
 }
 
 int main() {
@@ -37,6 +57,14 @@ int main() {
 
 	Matrix D = A.matmul(B);
 	print(D, "Matrix D = A * B");
+
+	Matrix rand_mat = Matrix(4, 5);
+	rand_matrix(rand_mat);
+
+	print(rand_mat, "Random Matrix 4x5");
+
+	Matrix max_col_idx = rand_mat.argmax_cols();
+	print(max_col_idx, "Argmax of Random Matrix (column indices)");
 
 
 	

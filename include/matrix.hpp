@@ -33,6 +33,13 @@ public:
 	Matrix hadamard(const Matrix& other)const;
 	Matrix scale(float scalar)const;
 	Matrix add_col_vector(const Matrix& col_vector)const;
+	
+	Matrix argmax_cols() const;
+	Matrix apply(std::function<float(float)> func) const;
+	
+	float sum() const;
+	
+
 
 private:
 	std::size_t rows_;

@@ -157,3 +157,43 @@ Matrix Matrix::add_col_vector(const Matrix& col_vector)const {
 	return result;
 }
 
+float Matrix::sum() const {
+	float total = 0.0f;
+	
+	for (std::size_t i = 0; i < rows_;++i) {
+		for (std::size_t j = 0; j < cols_;++j) {
+			total += (*this)(i, j);
+		}
+	}
+	return total;
+};
+
+Matrix Matrix::argmax_cols() const{
+	Matrix result(1, cols_);
+
+	for (std::size_t j = 0; j < cols_; ++j) {
+		float best_value = (*this)(0, j);
+		std::size_t best_row = 0;
+
+		for (std::size_t i = 1; i < rows_; ++i) {
+			if ((*this)(i, j) > best_value) {
+				best_value = (*this)(i, j);
+				best_row = i;
+			}
+		}
+
+		result(0, j) = static_cast<float>(best_row);
+	}
+
+	return result;
+}
+
+Matrix Matrix::apply(std::function<float(float)> func) const {
+	Matrix result(rows_, cols_);
+	for (std::size_t i = 0; i < rows_; ++i) {
+		for (std::size_t j = 0; j < cols_; ++j) {
+			result(i, j) = func((*this)(i, j));
+		}
+	}
+	return result;
+}
