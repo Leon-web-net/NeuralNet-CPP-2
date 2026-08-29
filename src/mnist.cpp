@@ -1,6 +1,6 @@
 #include "mnist.hpp"
 #include <fstream>
-#include <sstream>
+#include <charconv>
 #include <stdexcept>
 #include <vector>
 
@@ -23,17 +23,29 @@ namespace mnist {
 
 		while (std::getline(file, line)) {
 			if (line.empty()) continue;
-			std::stringstream ss(line);
-			std::string cell;
+			
+			const char* p = line.data();
+			const char* end = p + line.size();
 
-			std::getline(ss, cell, ',');
-			label_buffer.push_back(std::stoi(cell));
+			int label = 0;
+			auto lr = std::from_chars(p, end, label);
+			if (lr.ec != std::errc()) {
+				throw std::runtime_error("mnist::load: bad label in row");
+			}
+			label_buffer.push_back(label);
+			p = lr.ptr;
 
 			std::size_t pixels_read = 0;
-			while (std::getline(ss, cell, ',')) {
-				pixel_buffer.push_back(std::stof(cell) / PIXEL_MAX);
+			while (p < end) {
+				if (*p == ',') ++p;
+				float value = 0.0f;
+				auto pr = std::from_chars(p, end, value);
+				if (pr.ec != std::errc())break;
+				pixel_buffer.push_back(value / PIXEL_MAX);
 				++pixels_read;
+				p = pr.ptr;
 			}
+
 
 			if (pixels_read != IMAGE_SIZE) {
 				throw std::runtime_error(
