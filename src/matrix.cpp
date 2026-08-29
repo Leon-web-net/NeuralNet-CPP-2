@@ -1,8 +1,7 @@
 #include "matrix.hpp"
 #include <stdexcept>
 #include <string>
-
-
+ 
 Matrix Matrix::matmul(const Matrix& other)const {
 	if (cols_ != other.rows_) {
 		throw std::invalid_argument(

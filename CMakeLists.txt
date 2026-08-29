@@ -8,6 +8,7 @@ find_package(OpenMP)
 
 add_library(nn_core
     src/matrix.cpp
+    src/mnist.cpp
 )
 
 target_include_directories(nn_core PUBLIC include)
