@@ -4,7 +4,7 @@
 #include <random>
 
 
-void print(const Matrix& m, const std::string& name, int width = 10, int precision = 4) {
+static void print(const Matrix& m, const std::string& name, int width = 10, int precision = 4) {
 	std::cout << name << " (" << m.rows() << "x" << m.cols() << "):\n";
 
 	// Set floating-point format to fixed decimal places
@@ -21,7 +21,7 @@ void print(const Matrix& m, const std::string& name, int width = 10, int precisi
 	std::cout << '\n';
 }
 
-void rand_matrix(Matrix& m, float lo = -1.0f, float hi = 1.0f) {
+static void rand_matrix(Matrix& m, float lo = -1.0f, float hi = 1.0f) {
 	static std::mt19937 gen(42);
 	std::uniform_real_distribution<float> dist(lo, hi);
 
@@ -32,8 +32,7 @@ void rand_matrix(Matrix& m, float lo = -1.0f, float hi = 1.0f) {
 	}
 }
 
-int main() {
-	
+static void matrix_test() {
 	std::vector<float> vec_A = { 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f };
 	Matrix A(2, 3, vec_A);
 	print(A, "Matrix A");
@@ -67,6 +66,11 @@ int main() {
 	print(max_col_idx, "Argmax of Random Matrix (column indices)");
 
 
+}
+
+int main() {
 	
+	matrix_test();
+
 	return 0;
 }

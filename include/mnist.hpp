@@ -7,6 +7,7 @@ namespace mnist {
 
 	constexpr std::size_t IMAGE_SIZE = 784;
 	constexpr std::size_t NUM_CLASSES = 10;
+	constexpr std::size_t IMAGE_WIDTH = 28;
 
 
 	struct Dataset {

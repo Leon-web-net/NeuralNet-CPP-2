@@ -4,8 +4,8 @@
 #include <vector>
 #include <cstddef>
 
-constexpr std::size_t HIDDEN1 128;
-constexpr std::size_t HIDDEN 64;
+constexpr std::size_t HIDDEN1 = 128;
+constexpr std::size_t HIDDEN2 =  64;
 
 struct Layer {
 	Matrix weights; // n_out x n_in
@@ -18,7 +18,12 @@ class Network {
 public:
 	Network();  // build network and init weights
 
+	
 	// TODO: forward, loss, backward, train, save, load
+	void print_weights_stats() const;
+
+	std::vector<Matrix> forward(const Matrix& input)const;
+	float cross_entropy_loss(const Matrix& pred, const Matrix& labels);
 
 private:
 	std::vector<Layer>layers_;
