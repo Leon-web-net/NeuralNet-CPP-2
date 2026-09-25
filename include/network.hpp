@@ -14,16 +14,30 @@ struct Layer {
 		:weights(n_out, n_in), biases(n_out,1){}
 };
 
+struct LayerGrad {
+	Matrix dW;
+	Matrix db;
+};
+
 class Network {
 public:
-	Network();  // build network and init weights
+	explicit Network(const std::vector<std::size_t>& sizes =
+		{ mnist::IMAGE_SIZE, HIDDEN1, HIDDEN2,mnist::NUM_CLASSES });
 
+	Layer& layer(std::size_t l) {return layers_.at(l); }
+	std::size_t num_layers() const { return layers_.size(); }
+	
 	
 	// TODO: forward, loss, backward, train, save, load
 	void print_weights_stats() const;
 
 	std::vector<Matrix> forward(const Matrix& input)const;
-	float cross_entropy_loss(const Matrix& pred, const Matrix& labels);
+	static float cross_entropy_loss(const Matrix& pred, const Matrix& labels);
+
+	std::vector<LayerGrad> backward(const std::vector<Matrix>& activations,
+		const Matrix& labels) const;
+	void update(const std::vector<LayerGrad>& grads, float lr);
+
 
 private:
 	std::vector<Layer>layers_;

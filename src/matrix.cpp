@@ -196,3 +196,38 @@ Matrix Matrix::apply(std::function<float(float)> func) const {
 	}
 	return result;
 }
+
+Matrix Matrix::row_sums()const {
+	Matrix result(rows_, 1);
+
+	for (std::size_t i = 0; i < rows_;++i) {
+		float sum = 0.0f;
+		for (std::size_t j = 0; j < cols_; ++j) {
+			sum += (*this)(i, j);
+		}
+		result(i, 0) = sum;
+	}
+	
+	return result;
+}
+
+Matrix Matrix::gather_cols(const std::vector<std::size_t>& indices)const {
+	for (std::size_t idx : indices) {
+		if (idx >= cols_) {
+			throw std::out_of_range(
+				"gather_cols: column " + std::to_string(idx) +
+				" out of range for " + std::to_string(rows_) + "x" +
+				std::to_string(cols_));
+		}
+	}
+
+	Matrix result(rows_, indices.size());
+	for (std::size_t r = 0; r < rows_;++r) {
+		for (std::size_t k = 0; k < indices.size();++k) {
+			result(r, k) = (*this)(r, indices[k]);
+		}
+	}
+
+	return result;
+}
+

@@ -3,13 +3,17 @@
 #include <cmath>
 #include <iostream>
 #include <limits>
-
+#include <string>
+#include <stdexcept>
 // static (internal linkage) only visible in this .cpp file
 
-Network::Network() {
-	layers_.emplace_back(mnist::IMAGE_SIZE, HIDDEN1);
-	layers_.emplace_back(HIDDEN1, HIDDEN2);
-	layers_.emplace_back(HIDDEN2, mnist::NUM_CLASSES);
+Network::Network(const std::vector <std::size_t>& sizes) {
+	if (sizes.size() < 2) {
+		throw std::invalid_argument("Network: need at least input and output sizes");
+	}
+	for (std::size_t i = 0; i + 1 < sizes.size(); ++i) {
+		layers_.emplace_back(sizes[i], sizes[i + 1]);
+	}
 	init_weights();
 }
 
@@ -149,3 +153,60 @@ float Network::cross_entropy_loss(const Matrix& pred, const Matrix& labels) {
 
 }
 
+
+
+std::vector<LayerGrad> Network::backward(const std::vector<Matrix>& activations,
+										const Matrix& labels) const {
+	const std::size_t L = layers_.size();
+	const float B = static_cast<float>(labels.cols());
+
+	std::vector<LayerGrad> grads;
+	grads.reserve(L); // makes space for three layers, no reallocation
+	// Intialise gradients of weights and biases
+	for (const Layer& layer : layers_) {
+		grads.push_back({ Matrix(layer.weights.rows(), layer.weights.cols()),
+			Matrix(layer.biases.rows(), 1) });
+
+	}
+
+	// Delta = (P-Y)/B. P softmax predictions. P-Y: output error
+	// average over the batch B.
+	Matrix delta = activations.back().subtract(labels).scale(1.0f / B);
+	
+	for (std::size_t i = L; i > 0;--i) {
+		const std::size_t l = i - 1;
+		const Matrix& a_prev = activations[l];
+
+		grads[l].dW = delta.matmul(a_prev.transpose()); // weight gradient, delta · a_prevᵀ
+		grads[l].db = delta.row_sums(); // bias gradient, sum accross batch
+
+		if (l > 0) {
+			// if layer 0 has nothing before it, sigmoid slope at each unit
+			Matrix sig_deriv = a_prev.apply(
+				[](float a) {return a * (1.0f - a);});
+			
+			delta = layers_[l].weights.transpose() // send error back through W
+				.matmul(delta)						// error at previous layer's output
+				.hadamard(sig_deriv);				// through that layer's sigmoid
+
+		}
+	}
+
+	return grads;
+}
+
+void Network::update(const std::vector<LayerGrad>& grads, float lr) {
+	if (grads.size() != layers_.size()) {
+		throw std::invalid_argument(
+			"update: got " + std::to_string(grads.size()) +" gradients for " +
+			std::to_string(layers_.size()) + " layers");
+	}
+
+	for (std::size_t l = 0; l < layers_.size(); ++l) {
+		// W = W -lr·dW
+		layers_[l].weights = layers_[l].weights.subtract(grads[l].dW.scale(lr));
+		// b  = b − lr·db
+		layers_[l].biases = layers_[l].biases.subtract(grads[l].db.scale(lr));
+	}
+
+}

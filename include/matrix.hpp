@@ -38,6 +38,10 @@ public:
 	Matrix apply(std::function<float(float)> func) const;
 	
 	float sum() const;
+	Matrix row_sums()const;
+
+	Matrix gather_cols(const std::vector<std::size_t>& indicies) const;
+
 	
 
 

@@ -22,6 +22,9 @@ target_compile_definitions(nn_core PUBLIC
  add_executable(test_matrix src/test_matrix.cpp)
  target_link_libraries(test_matrix PRIVATE nn_core)
 
+ add_executable(test_grad src/test_grad.cpp)
+ target_link_libraries(test_grad PRIVATE nn_core)
+
 
 if(OpenMP_CXX_FOUND)
     target_link_libraries(nn_core PUBLIC OpenMP::OpenMP_CXX)
@@ -31,4 +34,5 @@ if(MSVC)
     target_compile_options(nn_core PRIVATE /W4)
     target_compile_options(NeuralNet PRIVATE /W4)
     target_compile_options(test_matrix PRIVATE /W4)
+    target_compile_options(test_grad PRIVATE /W4)
 endif() 
