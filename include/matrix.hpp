@@ -42,7 +42,8 @@ public:
 
 	Matrix gather_cols(const std::vector<std::size_t>& indicies) const;
 
-	
+	float* data() { return data_.data(); }
+	const float* data() const { return data_.data(); }
 
 
 private:

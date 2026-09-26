@@ -5,6 +5,8 @@
 #include <limits>
 #include <string>
 #include <stdexcept>
+#include <fstream>
+#include <cstdint>
 // static (internal linkage) only visible in this .cpp file
 
 Network::Network(const std::vector <std::size_t>& sizes) {
@@ -209,4 +211,77 @@ void Network::update(const std::vector<LayerGrad>& grads, float lr) {
 		layers_[l].biases = layers_[l].biases.subtract(grads[l].db.scale(lr));
 	}
 
+}
+
+// File format (all little-endian on x86):
+//   uint32 magic, uint64 layer count,
+//   then per layer: [rows, cols, floats...] for weights, then biases.
+constexpr std::uint32_t MODEL_MAGIC = 0x4E4E4331;   // "NNC1": identifies our files
+
+static void write_u64(std::ofstream& out, std::uint64_t v) {
+	out.write(reinterpret_cast<const char*>(&v), sizeof(v));
+}
+
+static std::uint16_t read_u64(std::ifstream& in) {
+	std::uint64_t v = 0;
+	in.read(reinterpret_cast<char*>(&v), sizeof(v));
+	if (!in) throw std::runtime_error("load: file truncated");
+	return v;
+}
+
+static void write_matrix(std::ofstream& out, const Matrix& m) {
+	write_u64(out, m.rows());
+	write_u64(out, m.cols());
+	out.write(reinterpret_cast<const char*>(m.data()),
+		static_cast<std::streamsize>(m.rows() * m.cols() * sizeof(float)));
+}
+
+static void read_matrix_into(std::ifstream& in, Matrix& m) {
+	const std::uint64_t rows = read_u64(in);
+	const std::uint64_t cols = read_u64(in);
+	if (rows != m.rows() || cols != m.cols()) {
+		throw std::runtime_error(
+			"load: file has a (" + std::to_string(rows) + "x" + std::to_string(cols) +
+			") matrix, network expects (" + std::to_string(m.rows()) + "x" +
+			std::to_string(m.cols()) + ")");
+	}
+
+	in.read(reinterpret_cast<char*>(m.data()),
+		static_cast<std::streamsize>(rows * cols * sizeof(float)));
+	if (!in) throw std::runtime_error("load: file truncated");
+}
+
+void Network::save(const std::string& path) const {
+	std::ofstream out(path, std::ios::binary);
+	if (!out) throw std::runtime_error("save: could not open " + path);
+
+	out.write(reinterpret_cast<const char*>(&MODEL_MAGIC), sizeof(MODEL_MAGIC));
+	write_u64(out, layers_.size());
+
+	for (const Layer& layer : layers_) {
+		write_matrix(out, layer.weights);
+		write_matrix(out, layer.biases);
+	}
+}
+
+void Network::load(const std::string& path) {
+	std::ifstream in(path, std::ios::binary);
+	if (!in) throw std::runtime_error("load: could not open " + path);
+
+	std::uint32_t magic = 0;
+	in.read(reinterpret_cast<char*>(&magic), sizeof(magic));
+	if (!in || magic != MODEL_MAGIC) {
+		throw std::runtime_error("load: " + path + " is not a model file");
+	}
+
+	const std::uint64_t n = read_u64(in);
+	if (n != layers_.size()) {
+		throw std::runtime_error("load: file has "+ std::to_string(n)+
+			" layers, network has " + std::to_string(layers_.size()));
+	}
+
+	for (Layer& layer : layers_) {
+		read_matrix_into(in, layer.weights);
+		read_matrix_into(in, layer.biases);
+	}
 }

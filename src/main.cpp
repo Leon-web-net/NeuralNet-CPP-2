@@ -1,6 +1,8 @@
 ﻿#include "network.hpp"
 #include "mnist.hpp"
 #include "matrix.hpp"
+#include "metrics.hpp"
+#include <optional>
 #include <iostream>
 #include <chrono>
 #include <vector>
@@ -8,13 +10,24 @@
 #include <algorithm>
 #include <random>
 
-constexpr std::size_t EPOCHS = 25;
-constexpr std::size_t BATCH = 64;
-constexpr float LR_START = 0.5f;
-constexpr float LR_DECAY = 0.9f;
-constexpr std::size_t DECAY_EVERY = 5; // lr*= 0.9 at epochs 5, 10, 15 ...
-constexpr float TRAIN_FRAC = 0.8f;
 
+namespace config {
+	// Hyperparameters
+	constexpr std::size_t EPOCHS = 25;
+	constexpr std::size_t BATCH = 64;
+	constexpr float LR_START = 0.5f;
+	constexpr float LR_DECAY = 0.9f;
+	constexpr std::size_t DECAY_EVERY = 5; // lr*= 0.9 at epochs 5, 10, 15 ...
+	constexpr float TRAIN_FRAC = 0.8f;
+
+	// What produced this run.Change this label with each optimisation step.
+	constexpr std::string_view BACKEND = "cpu_native";
+	// What the model file contains.
+	constexpr std::string_view MODEL_NAME = "mlp_784-128-64-10_sigmoid_v1";
+	constexpr bool ENABLE_LOGGING = false;
+	constexpr bool SAVE_MODEL = true;
+
+}
 
 static void dataset_load_speed() {
 	auto t0 = std::chrono::steady_clock::now();
@@ -70,7 +83,7 @@ int main() {
 		std::mt19937 gen(123);
 		std::shuffle(idx.begin(), idx.end(), gen);
 
-		const std::size_t n_train = static_cast<std::size_t>(TRAIN_FRAC * static_cast<float>(N));
+		const std::size_t n_train = static_cast<std::size_t>(config::TRAIN_FRAC * static_cast<float>(N));
 		std::vector<std::size_t> train_idx(idx.begin(), idx.begin() + n_train);
 		std::vector<std::size_t> val_idx(idx.begin() + n_train, idx.end());
 
@@ -79,10 +92,21 @@ int main() {
 		std::cout << "train: " << n_train << " val: " << val_idx.size() << "\n";
 
 		Network net;
-		float lr = LR_START;
+		float lr = config::LR_START;
 
-		for (std::size_t epoch = 1; epoch <= EPOCHS; ++epoch) {
-			if (epoch % DECAY_EVERY == 0) lr *= LR_DECAY;
+		std::optional<RunLogger> logger;              // starts empty: no file opened
+		if (config::ENABLE_LOGGING) {
+			const std::string run_id = make_run_id(config::BACKEND);
+			logger.emplace(LOGS_DIR, run_id);         // construct the RunLogger inside it
+			std::cout << "logging run: " << run_id << " (" << BUILD_CONFIG << ")\n";
+		}
+		else {
+			std::cout << "logging disabled\n";
+		}
+
+
+		for (std::size_t epoch = 1; epoch <= config::EPOCHS; ++epoch) {
+			if (epoch % config::DECAY_EVERY == 0) lr *= config::LR_DECAY;
 
 			std::shuffle(train_idx.begin(), train_idx.end(), gen);
 			const auto t0 = std::chrono::steady_clock::now();
@@ -90,8 +114,8 @@ int main() {
 			float loss_sum = 0.0f;
 			std::size_t n_batches = 0;
 
-			for (std::size_t start = 0; start < n_train; start += BATCH) {
-				const std::size_t end = std::min(start + BATCH, n_train);
+			for (std::size_t start = 0; start < n_train; start += config::BATCH) {
+				const std::size_t end = std::min(start + config::BATCH, n_train);
 				const std::vector<std::size_t> b_idx(train_idx.begin() + start,
 					train_idx.begin() + end);
 
@@ -106,7 +130,13 @@ int main() {
 
 			const auto t1 = std::chrono::steady_clock::now();
 			const double secs = std::chrono::duration<double>(t1 - t0).count();
-			const float val_acc = accuracy(net.forward(X_val).back(), Y_val);
+
+			const Matrix val_pred = net.forward(X_val).back();
+			const float val_acc = accuracy(val_pred, Y_val);
+			const float val_loss = Network::cross_entropy_loss(val_pred, Y_val);
+			const float train_loss = loss_sum / static_cast<float>(n_batches);
+
+			if (logger) logger->log_epoch({ epoch, lr, train_loss, val_loss, val_acc, secs });
 
 			std::cout << "epoch " << epoch
 				<< "  lr=" << lr
@@ -114,6 +144,20 @@ int main() {
 				<< "  val_acc=" << val_acc * 100.0f << "%"
 				<< "  (" << secs << " s)" << std::endl;
 		}
+		
+
+		if (logger) logger->write_summary(config::BACKEND, config::BATCH, config::LR_START);
+		
+		const std::string model_path = std::string(MODELS_DIR) + "/" + std::string(config::MODEL_NAME) + ".bin";
+		if (config::SAVE_MODEL) {
+			//std::filesystem::create_directories(MODELS_DIR);
+			net.save(model_path);
+		}
+
+		Network reloaded;
+		reloaded.load(model_path);
+		std::cout << "original val_acc: " << accuracy(net.forward(X_val).back(), Y_val) * 100.0f << "%\n";
+		std::cout << "original val_acc: " << accuracy(reloaded.forward(X_val).back(), Y_val) * 100.0f << "%\n";
 	}
 	catch (const std::exception& e) {
 		std::cerr << "ERROR: " << e.what() << "\n";

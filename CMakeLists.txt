@@ -10,11 +10,15 @@ add_library(nn_core
     src/matrix.cpp
     src/mnist.cpp
     src/network.cpp
+    src/metrics.cpp
 )
 
 target_include_directories(nn_core PUBLIC include)
 target_compile_definitions(nn_core PUBLIC
-    DATA_DIR="${CMAKE_SOURCE_DIR}/data")
+    DATA_DIR="${CMAKE_SOURCE_DIR}/data"
+    MODELS_DIR="${CMAKE_SOURCE_DIR}/models"
+    LOGS_DIR="${CMAKE_SOURCE_DIR}/logs"
+    BUILD_CONFIG="$<CONFIG>")
 
  add_executable(NeuralNet src/main.cpp)
  target_link_libraries(NeuralNet PRIVATE nn_core)

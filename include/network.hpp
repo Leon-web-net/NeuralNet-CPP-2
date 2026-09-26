@@ -38,6 +38,9 @@ public:
 		const Matrix& labels) const;
 	void update(const std::vector<LayerGrad>& grads, float lr);
 
+	// const at end means will not modify any member
+	void save(const std::string& path) const; // read
+	void load(const std::string& path); // Write
 
 private:
 	std::vector<Layer>layers_;
