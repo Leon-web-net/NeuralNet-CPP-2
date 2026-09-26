@@ -46,7 +46,7 @@ static void dataset_load_speed() {
 	std::cout << "image[0] pixel range: [" << pmin << ", " << pmax << "]\n";
 }
 
-float accuracy(const Matrix& pred, const Matrix& labels) {
+static float accuracy(const Matrix& pred, const Matrix& labels) {
 	const Matrix p = pred.argmax_cols();
 	const Matrix t = labels.argmax_cols();
 	std::size_t correct = 0;
