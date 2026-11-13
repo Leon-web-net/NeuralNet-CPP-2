@@ -18,6 +18,7 @@ target_compile_definitions(nn_core PUBLIC
     DATA_DIR="${CMAKE_SOURCE_DIR}/data"
     MODELS_DIR="${CMAKE_SOURCE_DIR}/models"
     LOGS_DIR="${CMAKE_SOURCE_DIR}/logs"
+    SUBMISSIONS_DIR="${CMAKE_SOURCE_DIR}/submissions"
     BUILD_CONFIG="$<CONFIG>")
 
  add_executable(NeuralNet src/main.cpp)

@@ -1,79 +1,89 @@
 #include "mnist.hpp"
-#include <fstream>
 #include <charconv>
+#include <fstream>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 namespace mnist {
 
-	constexpr float PIXEL_MAX = 255.0f;
+    constexpr float PIXEL_MAX = 255.0f;   // 8-bit grayscale -> [0,1]
 
-	Dataset load(const std::string& path) {
-		std::ifstream file(path);
-		if (!file.is_open()) {
-			throw std::runtime_error("Load_mnist: could not open" + path);
+    Dataset load(const std::string& path, bool has_labels) {
+        std::ifstream file(path);
+        if (!file.is_open()) {
+            throw std::runtime_error("mnist::load: could not open " + path);
+        }
 
-		}
+        std::string line;
+        std::getline(file, line);   // skip the header row
 
-		std::string line;
-		std::getline(file, line); // Skip the header line
+        std::vector<float> pixel_buffer;   // sample-major: [s0_p0..s0_p783, s1_p0..]
+        std::vector<int>   label_buffer;   // stays empty when has_labels is false
+        std::size_t rows_read = 0;
 
-		std::vector<float> pixel_buffer;
-		std::vector<int> label_buffer;
+        while (std::getline(file, line)) {
+            if (line.empty()) continue;
 
-		while (std::getline(file, line)) {
-			if (line.empty()) continue;
-			
-			const char* p = line.data();
-			const char* end = p + line.size();
+            const std::size_t row = rows_read + 1;   // 1-based, for error messages
+            const char* p = line.data();
+            const char* end = p + line.size();
 
-			int label = 0;
-			auto lr = std::from_chars(p, end, label);
-			if (lr.ec != std::errc()) {
-				throw std::runtime_error("mnist::load: bad label in row");
-			}
-			label_buffer.push_back(label);
-			p = lr.ptr;
+            // --- label (train.csv only) ---
+            if (has_labels) {
+                int label = 0;
+                auto lr = std::from_chars(p, end, label);
+                if (lr.ec != std::errc()) {
+                    throw std::runtime_error(
+                        "mnist::load: bad label in data row " + std::to_string(row));
+                }
+                if (label < 0 || label >= static_cast<int>(NUM_CLASSES)) {
+                    throw std::runtime_error(
+                        "mnist::load: label " + std::to_string(label) +
+                        " out of range in data row " + std::to_string(row));
+                }
+                label_buffer.push_back(label);
+                p = lr.ptr;
+            }
 
-			std::size_t pixels_read = 0;
-			while (p < end) {
-				if (*p == ',') ++p;
-				float value = 0.0f;
-				auto pr = std::from_chars(p, end, value);
-				if (pr.ec != std::errc())break;
-				pixel_buffer.push_back(value / PIXEL_MAX);
-				++pixels_read;
-				p = pr.ptr;
-			}
+            // --- pixels ---
+            std::size_t pixels_read = 0;
+            while (p < end) {
+                if (*p == ',') ++p;                   // step over the delimiter
+                float value = 0.0f;
+                auto pr = std::from_chars(p, end, value);
+                if (pr.ec != std::errc()) break;      // trailing '\r' or end of line
+                pixel_buffer.push_back(value / PIXEL_MAX);
+                ++pixels_read;
+                p = pr.ptr;
+            }
 
+            if (pixels_read != IMAGE_SIZE) {
+                throw std::runtime_error(
+                    "mnist::load: expected " + std::to_string(IMAGE_SIZE) +
+                    " pixels in data row " + std::to_string(row) +
+                    ", got " + std::to_string(pixels_read) +
+                    (has_labels ? "" : " (is this a file with labels?)"));
+            }
 
-			if (pixels_read != IMAGE_SIZE) {
-				throw std::runtime_error(
-					"Load_mnist: expected " + std::to_string(IMAGE_SIZE) +
-					" pixels, but got " + std::to_string(pixels_read));
-			}
+            ++rows_read;
+        }
 
-		}
+        // --- assemble matrices: one column per sample ---
+        const std::size_t N = rows_read;
+        Matrix images(IMAGE_SIZE, N);
+        Matrix labels(has_labels ? NUM_CLASSES : 0, N);   // zero-filled
 
-		const std::size_t N = label_buffer.size();
-		Matrix images(IMAGE_SIZE, N);
-		Matrix labels(NUM_CLASSES, N);
+        for (std::size_t s = 0; s < N; ++s) {
+            for (std::size_t f = 0; f < IMAGE_SIZE; ++f) {
+                images(f, s) = pixel_buffer[s * IMAGE_SIZE + f];
+            }
+            if (has_labels) {
+                labels(static_cast<std::size_t>(label_buffer[s]), s) = 1.0f;   // one-hot
+            }
+        }
 
-		for (std::size_t s = 0; s < N; ++s) {
-			for (std::size_t f = 0; f < IMAGE_SIZE; ++f) {
-				images(f, s) = pixel_buffer[s * IMAGE_SIZE + f];
-			}
-			const int lbl = label_buffer[s];
-			if (lbl < 0 || lbl >= static_cast<int>(NUM_CLASSES)) {
-				throw std::runtime_error(
-					"mnist::load: label out of range: " + std::to_string(lbl)
-				);
-			}
-			labels(static_cast<std::size_t>(lbl), s) = 1.0f; // one hot encoded
-		}
+        return Dataset{ std::move(images), std::move(labels), N, has_labels };
+    }
 
-		return Dataset{ std::move(images), std::move(labels),N};
-
-	}
-
-}
+}  

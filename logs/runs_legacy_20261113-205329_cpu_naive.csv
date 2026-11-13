@@ -1,0 +1,2 @@
+run_id,build,backend,epochs,batch,lr_start,final_val_acc,best_val_acc,mean_epoch_secs,total_train_secs
+20260927-093442_cpu_naive_full,Release,cpu_naive_full,25,64,0.5,nan,0,5.91653,147.913

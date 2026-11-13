@@ -77,6 +77,27 @@ void Network::print_weights_stats() const {
 
 }
 
+double Network::forward_flops_per_sample() const {
+	double flops = 0.0;
+	for (const Layer& layer : layers_) {
+		flops += 2.0 * static_cast<double>(layer.weights.rows()) *
+			static_cast<double>(layer.weights.cols());
+	}
+	return flops;
+}
+
+double Network::train_flops_per_sample() const {
+	double flops = 0.0;
+	for (std::size_t l = 0; l < layers_.size(); ++l) {
+		const double mk = static_cast<double>(layers_[l].weights.rows()) *
+			static_cast<double>(layers_[l].weights.cols());   // n_out * n_in
+		flops += 2.0 * mk;              // forward:  W · a
+		flops += 2.0 * mk;              // backward: dW = delta · aᵀ
+		if (l > 0) flops += 2.0 * mk;   // backward: Wᵀ · delta (layer 0 has no input grad)
+	}
+	return flops;
+}
+
 static float sigmoid(float z) {
 	return 1.0f / (1.0f + std::exp(-z));
 }
@@ -222,7 +243,7 @@ static void write_u64(std::ofstream& out, std::uint64_t v) {
 	out.write(reinterpret_cast<const char*>(&v), sizeof(v));
 }
 
-static std::uint16_t read_u64(std::ifstream& in) {
+static std::uint64_t read_u64(std::ifstream& in) {
 	std::uint64_t v = 0;
 	in.read(reinterpret_cast<char*>(&v), sizeof(v));
 	if (!in) throw std::runtime_error("load: file truncated");

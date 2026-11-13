@@ -31,6 +31,11 @@ public:
 	// TODO: forward, loss, backward, train, save, load
 	void print_weights_stats() const;
 
+	// Analytic matmul FLOP counts per image ("model FLOPs"). A (m x k)(k x n) matmul
+	// costs 2mkn. Fixed by the layer shapes, so compute once, not per batch.
+	double forward_flops_per_sample() const;   // W·a for every layer
+	double train_flops_per_sample() const;     // forward + dW + Wᵀ·delta (skipped for layer 0)
+
 	std::vector<Matrix> forward(const Matrix& input)const;
 	static float cross_entropy_loss(const Matrix& pred, const Matrix& labels);
 
