@@ -9,7 +9,7 @@ namespace {
 		"epoch,lr,train_loss,val_loss,val_acc,train_secs,images_per_sec,gflops,mfu_pct";
 
 	constexpr std::string_view RUNS_HEADER =
-		"run_id,build,backend,epochs,batch,lr_start,"
+		"run_id,build,backend,model,epochs,batch,lr_start,"
 		"final_val_acc,best_val_acc,mean_epoch_secs,total_train_secs,"
 		"mean_images_per_sec,mean_gflops,peak_gflops,mfu_pct";
 
@@ -79,7 +79,7 @@ void RunLogger::log_epoch(const EpochMetrics& m) {
 	if (m.val_acc > best_acc_) best_acc_ = m.val_acc;
 }
 
-void RunLogger::write_summary(std::string_view backend, std::size_t batch,
+void RunLogger::write_summary(std::string_view backend, std::string_view model, std::size_t batch,
 	float lr_start)const {
 	const std::string path = log_dir_ + "/runs.csv";
 	rotate_if_stale(path, run_id_);
@@ -98,7 +98,7 @@ void RunLogger::write_summary(std::string_view backend, std::size_t batch,
 	const double mean_ips = total_images_ / secs;
 	const double mfu_pct = peak_gflops_ > 0.0 ? 100.0 * mean_gflops / peak_gflops_ : 0.0;
 
-	out << run_id_ << ',' << BUILD_CONFIG << ',' << backend << ','
+	out << run_id_ << ',' << BUILD_CONFIG << ',' << backend << ',' << model << ','
 		<< n_epochs_ << ',' << batch << ',' << lr_start << ','
 		<< last_acc_ << ',' << best_acc_ << ',' << mean_epoch_secs << ','
 		<< total_secs_ << ',' << mean_ips << ',' << mean_gflops << ','

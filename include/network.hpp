@@ -3,9 +3,15 @@
 #include "mnist.hpp"
 #include <vector>
 #include <cstddef>
+#include <cstdint>
+#include <string>
 
 constexpr std::size_t HIDDEN1 = 128;
 constexpr std::size_t HIDDEN2 =  64;
+
+// Hidden-layer activation. Values are stored in model files, so don't renumber.
+enum class Activation : std::uint32_t { Sigmoid = 0, ReLU = 1 };
+const char* to_string(Activation a);
 
 struct Layer {
 	Matrix weights; // n_out x n_in
@@ -22,10 +28,12 @@ struct LayerGrad {
 class Network {
 public:
 	explicit Network(const std::vector<std::size_t>& sizes =
-		{ mnist::IMAGE_SIZE, HIDDEN1, HIDDEN2,mnist::NUM_CLASSES });
+		{ mnist::IMAGE_SIZE, HIDDEN1, HIDDEN2,mnist::NUM_CLASSES },
+		Activation act = Activation::ReLU);
 
 	Layer& layer(std::size_t l) {return layers_.at(l); }
 	std::size_t num_layers() const { return layers_.size(); }
+	Activation activation() const { return act_; }
 	
 	
 	// TODO: forward, loss, backward, train, save, load
@@ -45,9 +53,10 @@ public:
 
 	// const at end means will not modify any member
 	void save(const std::string& path) const; // read
-	void load(const std::string& path); // Write
+	void load(const std::string& path); // Write; also adopts the file's activation
 
 private:
 	std::vector<Layer>layers_;
+	Activation act_;
 	void init_weights();
 };

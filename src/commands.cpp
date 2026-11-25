@@ -32,10 +32,12 @@ void run_train(const mnist::Dataset& data, std::vector<std::size_t> train_idx,
 		std::cout << "logging disabled\n";
 	}
 
-	Network net(cfg.layer_sizes);
+	Network net(cfg.layer_sizes, cfg.activation);
+	std::cout << "model: " << opt.model_name << "  lr=" << cfg.lr_start
+		<< "  batch=" << cfg.batch << "  epochs=" << cfg.epochs << "\n";
 	train(net, data, std::move(train_idx), val_idx, cfg, logger ? &*logger : nullptr);
 
-	if (logger) logger->write_summary(run_label, cfg.batch, cfg.lr_start);
+	if (logger) logger->write_summary(run_label, opt.model_name, cfg.batch, cfg.lr_start);
 
 	if (opt.save) {
 		std::filesystem::create_directories(MODELS_DIR);

@@ -25,10 +25,20 @@ struct TrainConfig {
 	// Architecture: input, hidden..., output
 	std::vector<std::size_t> layer_sizes =
 		{ mnist::IMAGE_SIZE, HIDDEN1, HIDDEN2, mnist::NUM_CLASSES };
+	Activation activation = Activation::ReLU;
 
 	// Labels
 	std::string backend = "cpu_naive";                       // for timing logs
-	std::string model_name = "mlp_784-128-64-10_sigmoid_v1"; // default model file
+	std::string model_version = "v1";   // default model name = mlp_<sizes>_<activation>_<version>
+
+	std::string default_model_name() const {
+		std::string name = "mlp_";
+		for (std::size_t i = 0; i < layer_sizes.size(); ++i) {
+			if (i) name += '-';
+			name += std::to_string(layer_sizes[i]);
+		}
+		return name + '_' + to_string(activation) + '_' + model_version;
+	}
 
 	// Hardware peak for MFU. AMD Ryzen 7 5800X (Zen 3): 8 cores, 3.8 GHz base
 	// (4.7 boost), 2 FMA units x 8 floats (AVX2) x 2 ops = 32 FP32 FLOPs/cycle/core.

@@ -37,7 +37,8 @@ public:
 
 	void log_epoch(const EpochMetrics& m);
 
-	void write_summary(std::string_view backend, std::size_t batch, float lr_start) const;
+	void write_summary(std::string_view backend, std::string_view model,
+		std::size_t batch, float lr_start) const;
 
 private:
 	std::string log_dir_;

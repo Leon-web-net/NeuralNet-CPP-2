@@ -9,7 +9,15 @@
 #include <cstdint>
 // static (internal linkage) only visible in this .cpp file
 
-Network::Network(const std::vector <std::size_t>& sizes) {
+const char* to_string(Activation a) {
+	switch (a) {
+	case Activation::Sigmoid: return "sigmoid";
+	case Activation::ReLU:    return "relu";
+	}
+	return "unknown";
+}
+
+Network::Network(const std::vector <std::size_t>& sizes, Activation act) : act_(act) {
 	if (sizes.size() < 2) {
 		throw std::invalid_argument("Network: need at least input and output sizes");
 	}
@@ -24,11 +32,13 @@ void Network::init_weights() {
 
 	for (Layer& layer : layers_) {
 
-		// Xavier standard deviation from n_in and n_out
 		const std::size_t n_in = layer.weights.cols();
 		const std::size_t n_out = layer.weights.rows();
 
-		const float fan = static_cast<float>(n_in + n_out);
+		// He (ReLU): sqrt(2/n_in). ReLU zeroes half its inputs, so double the
+		// variance to keep activations the same scale layer to layer.
+		// Xavier/Glorot (sigmoid): sqrt(2/(n_in+n_out)).
+		const float fan = static_cast<float>(act_ == Activation::ReLU ? n_in : n_in + n_out);
 		const float stddev = std::sqrt(2.0f / fan);
 		std::normal_distribution<float> dist(0.0f, stddev);
 
@@ -102,6 +112,15 @@ static float sigmoid(float z) {
 	return 1.0f / (1.0f + std::exp(-z));
 }
 
+static float relu(float z) {
+	return z > 0.0f ? z : 0.0f;
+}
+
+// Activation slopes written in terms of the *output* a = f(z), so backward
+// only needs the stored activations, not z.
+static float sigmoid_deriv(float a) { return a * (1.0f - a); }
+static float relu_deriv(float a) { return a > 0.0f ? 1.0f : 0.0f; }   // a > 0 exactly when z > 0
+
 // applies softmax function to every column of a matrix z
 static Matrix softmax_cols(const Matrix& z) {
 	Matrix result(z.rows(), z.cols());
@@ -144,7 +163,7 @@ std::vector<Matrix> Network::forward(const Matrix& input)const {
 			activations.push_back(softmax_cols(z));
 		}
 		else {
-			activations.push_back(z.apply(sigmoid)); // For RELU swap
+			activations.push_back(act_ == Activation::ReLU ? z.apply(relu) : z.apply(sigmoid));
 		}
 		
 	}
@@ -204,13 +223,13 @@ std::vector<LayerGrad> Network::backward(const std::vector<Matrix>& activations,
 		grads[l].db = delta.row_sums(); // bias gradient, sum accross batch
 
 		if (l > 0) {
-			// if layer 0 has nothing before it, sigmoid slope at each unit
-			Matrix sig_deriv = a_prev.apply(
-				[](float a) {return a * (1.0f - a);});
-			
+			// layer 0 has nothing before it; otherwise, activation slope at each unit
+			const Matrix slope = act_ == Activation::ReLU ? a_prev.apply(relu_deriv)
+				: a_prev.apply(sigmoid_deriv);
+
 			delta = layers_[l].weights.transpose() // send error back through W
 				.matmul(delta)						// error at previous layer's output
-				.hadamard(sig_deriv);				// through that layer's sigmoid
+				.hadamard(slope);					// through that layer's activation
 
 		}
 	}
@@ -235,9 +254,11 @@ void Network::update(const std::vector<LayerGrad>& grads, float lr) {
 }
 
 // File format (all little-endian on x86):
-//   uint32 magic, uint64 layer count,
+//   uint32 magic, [NNC2 only: uint32 activation], uint64 layer count,
 //   then per layer: [rows, cols, floats...] for weights, then biases.
-constexpr std::uint32_t MODEL_MAGIC = 0x4E4E4331;   // "NNC1": identifies our files
+// NNC1 files predate the activation field and are always sigmoid.
+constexpr std::uint32_t MODEL_MAGIC_V1 = 0x4E4E4331;   // "NNC1"
+constexpr std::uint32_t MODEL_MAGIC = 0x4E4E4332;      // "NNC2": current
 
 static void write_u64(std::ofstream& out, std::uint64_t v) {
 	out.write(reinterpret_cast<const char*>(&v), sizeof(v));
@@ -277,6 +298,8 @@ void Network::save(const std::string& path) const {
 	if (!out) throw std::runtime_error("save: could not open " + path);
 
 	out.write(reinterpret_cast<const char*>(&MODEL_MAGIC), sizeof(MODEL_MAGIC));
+	const auto act = static_cast<std::uint32_t>(act_);
+	out.write(reinterpret_cast<const char*>(&act), sizeof(act));
 	write_u64(out, layers_.size());
 
 	for (const Layer& layer : layers_) {
@@ -291,8 +314,19 @@ void Network::load(const std::string& path) {
 
 	std::uint32_t magic = 0;
 	in.read(reinterpret_cast<char*>(&magic), sizeof(magic));
-	if (!in || magic != MODEL_MAGIC) {
+	if (!in || (magic != MODEL_MAGIC && magic != MODEL_MAGIC_V1)) {
 		throw std::runtime_error("load: " + path + " is not a model file");
+	}
+
+	Activation file_act = Activation::Sigmoid;   // NNC1 default
+	if (magic == MODEL_MAGIC) {
+		std::uint32_t a = 0;
+		in.read(reinterpret_cast<char*>(&a), sizeof(a));
+		if (!in) throw std::runtime_error("load: file truncated");
+		if (a > static_cast<std::uint32_t>(Activation::ReLU)) {
+			throw std::runtime_error("load: unknown activation id " + std::to_string(a));
+		}
+		file_act = static_cast<Activation>(a);
 	}
 
 	const std::uint64_t n = read_u64(in);
@@ -305,4 +339,5 @@ void Network::load(const std::string& path) {
 		read_matrix_into(in, layer.weights);
 		read_matrix_into(in, layer.biases);
 	}
+	act_ = file_act;   // only after everything loaded, so a failed load changes nothing visible
 }

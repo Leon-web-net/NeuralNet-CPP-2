@@ -1,2 +1,2 @@
-run_id,build,backend,epochs,batch,lr_start,final_val_acc,best_val_acc,mean_epoch_secs,total_train_secs,mean_images_per_sec,mean_gflops,peak_gflops,mfu_pct
-20261113-205329_cpu_naive,Release,cpu_naive,25,64,0.4,0.972262,0.972262,4.71909,117.977,7120.01,3.23533,972.8,0.332579
+run_id,build,backend,model,epochs,batch,lr_start,final_val_acc,best_val_acc,mean_epoch_secs,total_train_secs,mean_images_per_sec,mean_gflops,peak_gflops,mfu_pct
+20261125-055505_cpu_naive,Release,cpu_naive,mlp_784-128-64-10_relu_v1,25,64,0.4,0.975119,0.975833,4.77373,119.343,7038.52,3.1983,972.8,0.328773

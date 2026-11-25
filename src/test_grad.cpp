@@ -4,10 +4,11 @@
 #include <cmath>
 #include <algorithm>
 
-
-int main() {
+// Compares backward()'s dW against central finite differences of the loss.
+// Returns the worst relative error over every weight.
+static float worst_grad_error(Activation act) {
 	const std::size_t IN = 4, OUT = 2, B = 5;
-	Network net({ IN,3,OUT });
+	Network net({ IN,3,OUT }, act);
 
 	// random inputs in [0 1]; random one-hot labels.
 	std::mt19937 gen(7);
@@ -42,16 +43,22 @@ int main() {
 				float analytic = grads[l].dW(r, c);
 				float rel = std::abs(analytic - numerical) /
 					std::max(std::abs(analytic) + std::abs(numerical), 1e-8f);
-				
+
 				worst = std::max(worst, rel);
 			}
 		}
 	}
-
-	std::cout << "worst relative error: " << worst << "\n";
-	std::cout << (worst < 1e-2f ? "Pass\n" : "Fail\n");
-	
-	return worst < 1e-2f ? 0 : 1;
-
+	return worst;
 }
 
+int main() {
+	bool ok = true;
+	for (Activation act : { Activation::Sigmoid, Activation::ReLU }) {
+		const float worst = worst_grad_error(act);
+		const bool pass = worst < 1e-2f;
+		ok = ok && pass;
+		std::cout << to_string(act) << ": worst relative error " << worst
+			<< (pass ? "  Pass\n" : "  Fail\n");
+	}
+	return ok ? 0 : 1;
+}
