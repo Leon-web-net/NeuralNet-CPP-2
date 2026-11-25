@@ -11,6 +11,10 @@ add_library(nn_core
     src/mnist.cpp
     src/network.cpp
     src/metrics.cpp
+    src/cli.cpp
+    src/dataset_split.cpp
+    src/trainer.cpp
+    src/commands.cpp
 )
 
 target_include_directories(nn_core PUBLIC include)

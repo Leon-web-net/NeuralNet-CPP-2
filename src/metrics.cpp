@@ -31,6 +31,23 @@ namespace {
 	}
 }
 
+float accuracy(const Matrix& pred, const Matrix& labels) {
+	if (pred.rows() != labels.rows() || pred.cols() != labels.cols()) {
+		throw std::invalid_argument(
+			"accuracy: pred (" + std::to_string(pred.rows()) + "x" +
+			std::to_string(pred.cols()) + ") vs labels (" +
+			std::to_string(labels.rows()) + "x" + std::to_string(labels.cols()) +
+			") - dimensions don't match");
+	}
+	const Matrix p = pred.argmax_cols();
+	const Matrix t = labels.argmax_cols();
+	std::size_t correct = 0;
+	for (std::size_t j = 0; j < p.cols(); ++j) {
+		if (p(0, j) == t(0, j)) ++correct;
+	}
+	return static_cast<float>(correct) / static_cast<float>(p.cols());
+}
+
 std::string make_run_id(std::string_view backend) {
 	const auto now = std::chrono::floor<std::chrono::seconds>(
 		std::chrono::system_clock::now());

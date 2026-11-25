@@ -1,4 +1,5 @@
 #pragma once
+#include "matrix.hpp"
 #include <string>
 #include <string_view>
 #include <fstream>
@@ -24,6 +25,9 @@ struct HardwarePeak {
 	double gflops() const { return cores * ghz * flops_per_cycle; }
 	double gflops_per_core() const { return ghz * flops_per_cycle; }
 };
+
+// Fraction of columns where argmax(pred) == argmax(labels).
+float accuracy(const Matrix& pred, const Matrix& labels);
 
 std::string make_run_id(std::string_view backend);
 

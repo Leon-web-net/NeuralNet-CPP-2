@@ -112,7 +112,7 @@ Flags work in any order, before or after the mode.
 | `--no-save` | Don't write the model `.bin` | `train`, `train-full` |
 | `--model NAME` | Use model file `models/NAME.bin` instead of the default. No `.bin` in `NAME` | all modes |
 
-Default model name is `MODEL_NAME` in `main.cpp`'s `config` namespace (`_full` added for `train-full`).
+Default model name is `model_name` in `TrainConfig` (`include/config.hpp`) (`_full` added for `train-full`).
 
 ---
 
@@ -173,9 +173,9 @@ Folders are created automatically when first needed.
 | Setting | Where | Needs rebuild? |
 |---|---|---|
 | Mode, logging, saving, model name | command-line flags | no |
-| Epochs, batch size, learning rate, decay, split, seeds | `config` in `main.cpp` | **yes** |
-| `BACKEND` label (for benchmark logs) | `config` in `main.cpp` | **yes** |
-| Logging / saving defaults | `config::ENABLE_LOGGING`, `config::SAVE_MODEL` | **yes** |
+| Epochs, batch size, learning rate, decay, split, seeds | `TrainConfig` in `include/config.hpp` | **yes** |
+| `backend` label (for benchmark logs) | `TrainConfig` in `include/config.hpp` | **yes** |
+| Logging / saving defaults | `Options` defaults in `include/cli.hpp` | **yes** |
 
 ---
 
