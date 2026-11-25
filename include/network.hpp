@@ -6,8 +6,8 @@
 #include <cstdint>
 #include <string>
 
-constexpr std::size_t HIDDEN1 = 128;
-constexpr std::size_t HIDDEN2 =  64;
+constexpr std::size_t HIDDEN1 = 256;
+constexpr std::size_t HIDDEN2 = 128;
 
 // Hidden-layer activation. Values are stored in model files, so don't renumber.
 enum class Activation : std::uint32_t { Sigmoid = 0, ReLU = 1 };

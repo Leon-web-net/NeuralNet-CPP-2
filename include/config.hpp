@@ -11,7 +11,7 @@
 // command-line flags can override fields without recompiling.
 struct TrainConfig {
 	// Hyperparameters
-	std::size_t epochs = 25;
+	std::size_t epochs = 15;
 	std::size_t batch = 64;
 	float       lr_start = 0.4f;
 	float       lr_decay = 0.9f;

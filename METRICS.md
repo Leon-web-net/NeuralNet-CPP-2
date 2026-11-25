@@ -33,7 +33,8 @@ What each logged number means and how it's computed.
   - forward `W·a`: `2·n_in·n_out`
   - backward `dW = δ·aᵀ`: `2·n_in·n_out`
   - backward `Wᵀ·δ`: `2·n_in·n_out` (skipped for layer 0)
-- 784-128-64-10: **218 kFLOP** forward, **454 kFLOP** train, **15.3 GFLOP**/epoch on 33,600 images.
+- 784-256-128-10 (current): **470 kFLOP** forward, **1,007 kFLOP** train, **33.8 GFLOP**/epoch on 33,600 images.
+- 784-128-64-10 (old): 218 kFLOP forward, 454 kFLOP train, 15.3 GFLOP/epoch.
 
 FLOPs per epoch depend only on architecture and dataset size, never on batch size or code speed. Only time changes.
 

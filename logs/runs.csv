@@ -1,2 +1,3 @@
 run_id,build,backend,model,epochs,batch,lr_start,final_val_acc,best_val_acc,mean_epoch_secs,total_train_secs,mean_images_per_sec,mean_gflops,peak_gflops,mfu_pct
 20261125-055505_cpu_naive,Release,cpu_naive,mlp_784-128-64-10_relu_v1,25,64,0.4,0.975119,0.975833,4.77373,119.343,7038.52,3.1983,972.8,0.328773
+20261125-060617_cpu_naive,Release,cpu_naive,mlp_784-256-128-10_relu_v1,20,64,0.4,0.977381,0.977976,10.8682,217.363,3091.6,3.11356,972.8,0.320062
